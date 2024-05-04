@@ -2,6 +2,8 @@
 - hosts: localhost
   vars_files:
     - config.yaml
+  vars:
+    current_time: "{{ now(utc=true).timestamp() }}"
   tasks:
     - name: Load state
       ansible.builtin.include_vars: "{{ lookup('ansible.builtin.first_found', params) }}"
@@ -28,12 +30,14 @@
         - name: Update stage state
           ansible.builtin.set_fact:
             stage: "{{ _git_repo.after }}"
+            stage_time: "{{ current_time }}"
 
     - name: Deploy prod
       when:
         - _git_repo is not changed
         - stage == _git_repo.after
         - stage != prod
+        - (current_time|int - stage_time|int > prod_delay_sec|int)
       block:
         - name: Call prod deploy command
           ansible.builtin.command: "{{ prod_deploy_command }}"
@@ -50,3 +54,4 @@
         state:
           prod: "{{ prod }}"
           stage: "{{ stage }}"
+          stage_time: "{{ stage_time }}"

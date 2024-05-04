@@ -4,3 +4,4 @@ dest: /srv/app
 version: stable
 stage_deploy_command: 'true'
 prod_deploy_command: 'true'
+prod_delay_sec: 60
