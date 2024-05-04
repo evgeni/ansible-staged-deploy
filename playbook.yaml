@@ -1,5 +1,6 @@
 ---
-- hosts: localhost
+- name: Staged deploy
+  hosts: localhost
   vars_files:
     - config.yaml
   vars:
@@ -20,11 +21,11 @@
         version: "{{ version | default(omit) }}"
       register: _git_repo
 
-    - name: Deploy stage
+    - name: Deploy stage # noqa: no-handler
       when:
         - _git_repo is changed
       block:
-        - name: Call stage deploy command
+        - name: Call stage deploy command # noqa: no-changed-when
           ansible.builtin.command: "{{ stage_deploy_command }}"
 
         - name: Update stage state
@@ -39,7 +40,7 @@
         - stage != prod
         - (current_time|int - stage_time|int > prod_delay_sec|int)
       block:
-        - name: Call prod deploy command
+        - name: Call prod deploy command # noqa: no-changed-when
           ansible.builtin.command: "{{ prod_deploy_command }}"
 
         - name: Update prod state
@@ -50,6 +51,7 @@
       ansible.builtin.copy:
         dest: "state.yaml"
         content: "{{ state | ansible.builtin.to_nice_yaml }}"
+        mode: '0640'
       vars:
         state:
           prod: "{{ prod }}"
