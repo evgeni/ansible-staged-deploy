@@ -1,0 +1,52 @@
+---
+- hosts: localhost
+  vars_files:
+    - config.yaml
+  tasks:
+    - name: Load state
+      ansible.builtin.include_vars: "{{ lookup('ansible.builtin.first_found', params) }}"
+      vars:
+        params:
+          files:
+            - state.yaml
+            - default_state.yaml
+
+    - name: Git checkout
+      ansible.builtin.git:
+        repo: "{{ repo }}"
+        dest: "{{ dest }}"
+        version: "{{ version | default(omit) }}"
+      register: _git_repo
+
+    - name: Deploy stage
+      when:
+        - _git_repo is changed
+      block:
+        - name: Call stage deploy command
+          ansible.builtin.command: "{{ stage_deploy_command }}"
+
+        - name: Update stage state
+          ansible.builtin.set_fact:
+            stage: "{{ _git_repo.after }}"
+
+    - name: Deploy prod
+      when:
+        - _git_repo is not changed
+        - stage == _git_repo.after
+        - stage != prod
+      block:
+        - name: Call prod deploy command
+          ansible.builtin.command: "{{ prod_deploy_command }}"
+
+        - name: Update prod state
+          ansible.builtin.set_fact:
+            prod: "{{ _git_repo.after }}"
+
+    - name: Save state
+      ansible.builtin.copy:
+        dest: "state.yaml"
+        content: "{{ state | ansible.builtin.to_nice_yaml }}"
+      vars:
+        state:
+          prod: "{{ prod }}"
+          stage: "{{ stage }}"

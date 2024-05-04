@@ -1,0 +1,6 @@
+---
+repo: https://git.example.com/app.git
+dest: /srv/app
+version: stable
+stage_deploy_command: 'true'
+prod_deploy_command: 'true'
